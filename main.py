@@ -16,6 +16,7 @@ velocidade = 5
 velocidade_x = 0
 velocidade_y = 0
 gravidade = 0.5
+esta_no_chao = False
 #cor do jogador
 cor_jogador = (255, 0, 0)
 # Loop principal do jogo
@@ -24,8 +25,6 @@ while rodando:
     for evento in pygame.event.get():
         if evento.type == pygame.QUIT:
             rodando = False
-    # Aplicar gravidade
-    velocidade_y += gravidade
     # Movimentação do jogador
     teclas = pygame.key.get_pressed()
     if teclas[pygame.K_LEFT]:
@@ -47,13 +46,22 @@ while rodando:
     if posição_y > altura - altura_player:
         posição_y = altura - altura_player
         velocidade_y = 0
-    tela.fill((255, 255, 255))
-    #colisão com o chão
-    if posição_y > altura - altura_player:
-        posição_y = altura - altura_player
+    player = pygame.Rect(posição_x, posição_y, largura_player, altura_player)
+    plataforma = pygame.Rect(200, altura - 150, 100, 20)
+    chao = pygame.Rect(0, altura - 50, largura, 50)
+    #verificar colisão com a plataforma
+    if player.colliderect(plataforma):
+        posição_y = plataforma.top - altura_player
         velocidade_y = 0
-    # Desenhar o jogador
-    pygame.draw.rect(tela, cor_jogador, (posição_x, posição_y, largura_player, altura_player))
+        player.y = posição_y
+    if player.colliderect(chao):
+        posição_y = chao.top - altura_player
+        velocidade_y = 0
+        player.y = posição_y
+    tela.fill((255, 255, 255))
+    pygame.draw.rect(tela, cor_jogador, player)
+    pygame.draw.rect(tela, (0, 255, 0), plataforma)
+    pygame.draw.rect(tela, (0, 0, 255), chao)
     pygame.display.update()
     clock.tick(60)
 
