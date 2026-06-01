@@ -1,68 +1,184 @@
 import pygame
+import random
+
 pygame.init()
+
 # Configurações da janela
-pygame.display.set_caption('Jogo de física')
-altura = 600
-largura = 800
-tela = pygame.display.set_mode((largura, altura))
+LARGURA = 800
+ALTURA = 600
+TITULO = "Jogo de Física Aprimorado"
+
+tela = pygame.display.set_mode((LARGURA, ALTURA))
+pygame.display.set_caption(TITULO)
 clock = pygame.time.Clock()
-# variaveis do jogador
-posição_x = 350
-posição_y = 200
-largura_player = 100
-altura_player = 100
-velocidade = 5
-#velocidade do jogador e gravidade
-velocidade_x = 0
-velocidade_y = 0
-gravidade = 0.5
-esta_no_chao = False
-#cor do jogador
-cor_jogador = (255, 0, 0)
-# Loop principal do jogo
+
+# Cores
+BRANCO = (255, 255, 255)
+VERMELHO = (255, 0, 0)
+VERDE = (0, 255, 0)
+AZUL = (0, 0, 255)
+AMARELO = (255, 255, 0)
+
+# Classe do Jogador
+class Jogador(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.image = pygame.Surface((50, 50))
+        self.image.fill(VERMELHO)
+        self.rect = self.image.get_rect()
+        self.rect.x = 100
+        self.rect.y = 100
+        
+        # Física e Movimentação
+        self.velocidade_x = 0
+        self.velocidade_y = 0
+        self.aceleracao_x = 0.8
+        self.desaceleracao = 0.6
+        self.velocidade_max = 6
+        
+        self.gravidade = 0.6
+        self.forca_pulo = -12
+        self.limite_queda = 15
+        
+        # Estados
+        self.esta_no_chao = False
+        self.pulos_restantes = 2
+
+    def atualizar(self, chao, plataformas):
+        # Gravidade
+        self.velocidade_y += self.gravidade
+        if self.velocidade_y > self.limite_queda:
+            self.velocidade_y = self.limite_queda
+
+        # Movimento Horizontal com desaceleração
+        self.velocidade_x *= (1 - self.desaceleracao)
+        self.rect.x += self.velocidade_x
+
+        # Colisão Horizontal
+        self.verificar_colisoes_x(plataformas)
+        self.verificar_colisoes_x([chao])
+
+        # Movimento Vertical
+        self.rect.y += self.velocidade_y
+
+        # Colisão Vertical
+        self.esta_no_chao = False
+        self.verificar_colisoes_y(plataformas)
+        self.verificar_colisoes_y([chao])
+
+        # Limites da tela (paredes)
+        if self.rect.left < 0:
+            self.rect.left = 0
+        if self.rect.right > LARGURA:
+            self.rect.right = LARGURA
+
+    def pular(self):
+        if self.esta_no_chao:
+            self.velocidade_y = self.forca_pulo
+            self.esta_no_chao = False
+        elif self.pulos_restantes > 0: # Pulo duplo
+            self.velocidade_y = self.forca_pulo * 0.8 # Pulo duplo um pouco menor
+            self.pulos_restantes -= 1
+
+    def verificar_colisoes_x(self, obstaculos):
+        for obstaculo in obstaculos:
+            if self.rect.colliderect(obstaculo.rect):
+                if self.velocidade_x > 0:
+                    self.rect.right = obstaculo.rect.left
+                elif self.velocidade_x < 0:
+                    self.rect.left = obstaculo.rect.right
+                self.velocidade_x = 0
+
+    def verificar_colisoes_y(self, obstaculos):
+        for obstaculo in obstaculos:
+            if self.rect.colliderect(obstaculo.rect):
+                if self.velocidade_y > 0: # Caindo
+                    self.rect.bottom = obstaculo.rect.top
+                    self.velocidade_y = 0
+                    self.esta_no_chao = True
+                    self.pulos_restantes = 2 # Reseta pulo duplo
+                elif self.velocidade_y < 0: # Pulando e batendo a cabeça
+                    self.rect.top = obstaculo.rect.bottom
+                    self.velocidade_y = 0
+
+# Classe para plataformas
+class Plataforma(pygame.sprite.Sprite):
+    def __init__(self, x, y, largura, altura):
+        super().__init__()
+        self.image = pygame.Surface((largura, altura))
+        self.image.fill(VERDE)
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+
+# Classe para coletáveis (moedas/estrelas)
+class Coletavel(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__()
+        self.image = pygame.Surface((20, 20))
+        self.image.fill(AMARELO)
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+
+# Configurações do jogo
+jogador = Jogador()
+grupo_jogador = pygame.sprite.GroupSingle(jogador)
+
+chao = Plataforma(0, ALTURA - 40, LARGURA, 40)
+grupo_chao = pygame.sprite.GroupSingle(chao)
+
+# Grupo de plataformas
+grupo_plataformas = pygame.sprite.Group()
+grupo_plataformas.add(Plataforma(250, ALTURA - 120, 150, 20))
+grupo_plataformas.add(Plataforma(450, ALTURA - 220, 150, 20))
+grupo_plataformas.add(Plataforma(150, ALTURA - 320, 150, 20))
+
+# Grupo de coletáveis
+grupo_coletaveis = pygame.sprite.Group()
+for _ in range(5):
+    item = Coletavel(random.randint(100, LARGURA - 100), random.randint(100, ALTURA - 150))
+    grupo_coletaveis.add(item)
+
+# Loop Principal
 rodando = True
 while rodando:
+    relogio = clock.tick(60)
+
+    # Eventos
     for evento in pygame.event.get():
         if evento.type == pygame.QUIT:
             rodando = False
-    # Movimentação do jogador
+        if evento.type == pygame.KEYDOWN:
+            if evento.key == pygame.K_SPACE or evento.key == pygame.K_UP:
+                jogador.pular()
+
+    # Movimento contínuo pelas setas
     teclas = pygame.key.get_pressed()
-    if teclas[pygame.K_LEFT]:
-        posição_x -= velocidade
-    if teclas[pygame.K_RIGHT]:
-        posição_x += velocidade
-    if teclas[pygame.K_SPACE]:
-        velocidade_y = -10#pular
-    #aplicar gravidade
-    velocidade_y += gravidade
-    posição_y += velocidade_y
-    #impedir que o jogador saia da tela
-    if posição_x < 0:
-        posição_x = 0
-    if posição_x > largura - largura_player:
-        posição_x = largura - largura_player
-    if posição_y < 0:
-        posição_y = 0
-    if posição_y > altura - altura_player:
-        posição_y = altura - altura_player
-        velocidade_y = 0
-    player = pygame.Rect(posição_x, posição_y, largura_player, altura_player)
-    plataforma = pygame.Rect(200, altura - 150, 100, 20)
-    chao = pygame.Rect(0, altura - 50, largura, 50)
-    #verificar colisão com a plataforma
-    if player.colliderect(plataforma):
-        posição_y = plataforma.top - altura_player
-        velocidade_y = 0
-        player.y = posição_y
-    if player.colliderect(chao):
-        posição_y = chao.top - altura_player
-        velocidade_y = 0
-        player.y = posição_y
-    tela.fill((255, 255, 255))
-    pygame.draw.rect(tela, cor_jogador, player)
-    pygame.draw.rect(tela, (0, 255, 0), plataforma)
-    pygame.draw.rect(tela, (0, 0, 255), chao)
-    pygame.display.update()
-    clock.tick(60)
+    if teclas[pygame.K_LEFT] or teclas[pygame.K_a]:
+        jogador.velocidade_x -= jogador.aceleracao_x
+        if jogador.velocidade_x < -jogador.velocidade_max:
+            jogador.velocidade_x = -jogador.velocidade_max
+    if teclas[pygame.K_RIGHT] or teclas[pygame.K_d]:
+        jogador.velocidade_x += jogador.aceleracao_x
+        if jogador.velocidade_x > jogador.velocidade_max:
+            jogador.velocidade_x = jogador.velocidade_max
+
+    # Atualizações
+    jogador.atualizar(chao, grupo_plataformas)
+    
+    # Coletar itens
+    coletados = pygame.sprite.spritecollide(jogador, grupo_coletaveis, True)
+    if coletados:
+        print("Item coletado!")
+
+    # Renderização
+    tela.fill(BRANCO)
+    grupo_chao.draw(tela)
+    grupo_plataformas.draw(tela)
+    grupo_coletaveis.draw(tela)
+    grupo_jogador.draw(tela)
+
+    pygame.display.flip()
 
 pygame.quit()
