@@ -112,7 +112,7 @@ class Plataforma(pygame.sprite.Sprite):
         self.rect.y = y
 
 # Classe para coletáveis (moedas/estrelas)
-class Coletavel(pygame.sprite.Sprite):
+class CartaoAcesso(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
         self.image = pygame.Surface((20, 20))
@@ -137,9 +137,28 @@ grupo_plataformas.add(Plataforma(150, ALTURA - 320, 150, 20))
 # Grupo de coletáveis
 grupo_coletaveis = pygame.sprite.Group()
 for _ in range(5):
-    item = Coletavel(random.randint(100, LARGURA - 100), random.randint(100, ALTURA - 150))
+    item = CartaoAcesso(random.randint(100, LARGURA - 100), random.randint(100, ALTURA - 150))
     grupo_coletaveis.add(item)
 
+#variaveis de controle
+cartoes_coletados = 0
+cartoes_necessarios = 5
+porta_aberta = False
+
+#função para coletar cartões
+def coletar_cartao():
+    global cartoes_coletados
+    cartoes_coletados += 1
+    print(f"Cartões coletados: {cartoes_coletados}")
+
+#função para verificar se a porta pode ser aberta
+def encostar_na_porta():
+    global porta_aberta
+    if cartoes_coletados >= cartoes_necessarios:
+        porta_aberta = True
+        print("Porta aberta! Você pode passar.")
+    else:
+        print(f"Você precisa coletar {cartoes_necessarios - cartoes_coletados} cartões para abrir a porta.")
 # Loop Principal
 rodando = True
 while rodando:
