@@ -13,12 +13,14 @@ pygame.display.set_caption(TITULO)
 clock = pygame.time.Clock()
 
 # Cores
+PRETO = (0, 0, 0)
 BRANCO = (255, 255, 255)
 VERMELHO = (255, 0, 0)
 VERDE = (0, 255, 0)
 AZUL = (0, 0, 255)
 AMARELO = (255, 255, 0)
-
+#fonte para texto
+fonte = pygame.font.SysFont(None, 36)
 # Classe do Jogador
 class Jogador(pygame.sprite.Sprite):
     def __init__(self):
@@ -134,6 +136,19 @@ grupo_plataformas.add(Plataforma(250, ALTURA - 120, 150, 20))
 grupo_plataformas.add(Plataforma(450, ALTURA - 220, 150, 20))
 grupo_plataformas.add(Plataforma(150, ALTURA - 320, 150, 20))
 
+#criar porta
+class Porta(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__()
+        self.image = pygame.Surface((60, 80))
+        self.image.fill(AZUL)
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+#porta no mapa
+porta = Porta(700, ALTURA - 120)
+grupo_porta = pygame.sprite.GroupSingle(porta)
+
 # Grupo de coletáveis
 grupo_coletaveis = pygame.sprite.Group()
 for _ in range(5):
@@ -157,6 +172,14 @@ def encostar_na_porta():
     if cartoes_coletados >= cartoes_necessarios:
         porta_aberta = True
         print("Porta aberta! Você pode passar.")
+    #função para verificar colisão com a porta
+    if pygame.sprite.spritecollide(jogador, grupo_porta, False):
+        encostar_na_porta()
+        if porta_aberta:
+            print("Parabéns! Você passou pela porta e venceu o jogo!")
+            pygame.quit()
+            exit()
+
     else:
         print(f"Você precisa coletar {cartoes_necessarios - cartoes_coletados} cartões para abrir a porta.")
 # Loop Principal
@@ -188,8 +211,8 @@ while rodando:
     
     # Coletar itens
     coletados = pygame.sprite.spritecollide(jogador, grupo_coletaveis, True)
-    if coletados:
-        print("Item coletado!")
+    for item in coletados:
+        coletar_cartao()
 
     # Renderização
     tela.fill(BRANCO)
@@ -197,7 +220,12 @@ while rodando:
     grupo_plataformas.draw(tela)
     grupo_coletaveis.draw(tela)
     grupo_jogador.draw(tela)
-
+    grupo_porta.draw(tela)
+    texto = fonte.render(
+        f"Cartões coletados: {cartoes_coletados}/{cartoes_necessarios}", 
+        True, PRETO
+    )
+    tela.blit(texto, (10, 10))
     pygame.display.flip()
 
 pygame.quit()
