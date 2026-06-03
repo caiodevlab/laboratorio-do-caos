@@ -172,14 +172,7 @@ def encostar_na_porta():
     if cartoes_coletados >= cartoes_necessarios:
         porta_aberta = True
         print("Porta aberta! Você pode passar.")
-    #função para verificar colisão com a porta
-    if pygame.sprite.spritecollide(jogador, grupo_porta, False):
-        encostar_na_porta()
-        if porta_aberta:
-            print("Parabéns! Você passou pela porta e venceu o jogo!")
-            pygame.quit()
-            exit()
-
+    
     else:
         print(f"Você precisa coletar {cartoes_necessarios - cartoes_coletados} cartões para abrir a porta.")
 # Loop Principal
@@ -213,6 +206,11 @@ while rodando:
     coletados = pygame.sprite.spritecollide(jogador, grupo_coletaveis, True)
     for item in coletados:
         coletar_cartao()
+        if pygame.sprite.collide_rect(jogador, porta):
+            encostar_na_porta()
+            if porta_aberta:
+                print("Parabéns! Você venceu o jogo!")
+                rodando = False
 
     # Renderização
     tela.fill(BRANCO)
