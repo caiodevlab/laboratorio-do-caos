@@ -34,8 +34,8 @@ class Jogador(pygame.sprite.Sprite):
         # Física e Movimentação
         self.velocidade_x = 0
         self.velocidade_y = 0
-        self.aceleracao_x = 0.8
-        self.desaceleracao = 0.6
+        self.aceleracao_x = 0.5
+        self.desaceleracao = 0.1
         self.velocidade_max = 6
         
         self.gravidade = 0.6
@@ -172,10 +172,13 @@ def encostar_na_porta():
     if cartoes_coletados >= cartoes_necessarios:
         porta_aberta = True
         print("Porta aberta! Você pode passar.")
+        porta.image.fill(VERDE) # Muda a cor da porta para indicar que está aberta
     
     else:
         print(f"Você precisa coletar {cartoes_necessarios - cartoes_coletados} cartões para abrir a porta.")
+tempo_inicio = pygame.time.get_ticks() # Tempo inicial do jogo
 # Loop Principal
+venceu = False
 rodando = True
 while rodando:
     relogio = clock.tick(60)
@@ -206,11 +209,13 @@ while rodando:
     coletados = pygame.sprite.spritecollide(jogador, grupo_coletaveis, True)
     for item in coletados:
         coletar_cartao()
-        if pygame.sprite.collide_rect(jogador, porta):
-            encostar_na_porta()
-            if porta_aberta:
-                print("Parabéns! Você venceu o jogo!")
-                rodando = False
+    if pygame.sprite.collide_rect(jogador, porta):
+        encostar_na_porta()
+        if porta_aberta:
+            venceu = True
+            print("Parabéns! Você venceu o jogo!")
+            rodando = False
+            
 
     # Renderização
     tela.fill(BRANCO)
@@ -224,6 +229,11 @@ while rodando:
         True, PRETO
     )
     tela.blit(texto, (10, 10))
+    if venceu:
+        texto_vitoria = fonte.render("Parabéns! Você venceu!", True, AZUL)
+        tela.blit(texto_vitoria, (280, 250))
+    tempo = (pygame.time.get_ticks() - tempo_inicio) // 1000
+    texto_tempo = fonte.render(f"Tempo: {tempo} segundos", True, PRETO)
+    tela.blit(texto_tempo, (10, 50))
     pygame.display.flip()
-
 pygame.quit()
