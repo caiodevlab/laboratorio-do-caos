@@ -19,6 +19,7 @@ VERMELHO = (255, 0, 0)
 VERDE = (0, 255, 0)
 AZUL = (0, 0, 255)
 AMARELO = (255, 255, 0)
+CINZA = (128, 128, 128)
 #fonte para texto
 fonte = pygame.font.SysFont(None, 36)
 # Classe do Jogador
@@ -102,13 +103,48 @@ class Jogador(pygame.sprite.Sprite):
                 elif self.velocidade_y < 0: # Pulando e batendo a cabeça
                     self.rect.top = obstaculo.rect.bottom
                     self.velocidade_y = 0
+def reiniciar_jogo():
+        global jogador
+        global cartoes_coletados
+        global porta_aberta
+        global tempo_inicio
 
+        jogador.rect.x = 100
+        jogador.rect.y = 100
+
+        jogador.velocidade_x = 0
+        jogador.velocidade_y = 0
+
+        cartoes_coletados = 0
+        porta_aberta = False
+        tempo_inicio = pygame.time.get_ticks()
+#classe do inimigo
+class Inimigo(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__()
+        self.image = pygame.Surface((40, 40))
+        self.image.fill(AZUL)
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+        self.velocidade_x = 2
+
+    def update(self):
+        self.rect.x += self.velocidade_x
+        if self.rect.left < 0 or self.rect.right > LARGURA:
+            self.velocidade_x *= -1
+        if self.rect.left <= 0:
+            self.rect.left = 0
+            self.velocidade_x *= -1
+        if self.rect.right >= LARGURA:
+            self.rect.right = LARGURA
+            self.velocidade_x *= -1
 # Classe para plataformas
 class Plataforma(pygame.sprite.Sprite):
     def __init__(self, x, y, largura, altura):
         super().__init__()
         self.image = pygame.Surface((largura, altura))
-        self.image.fill(VERDE)
+        self.image.fill(CINZA)
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
@@ -135,7 +171,9 @@ grupo_plataformas = pygame.sprite.Group()
 grupo_plataformas.add(Plataforma(250, ALTURA - 120, 150, 20))
 grupo_plataformas.add(Plataforma(450, ALTURA - 220, 150, 20))
 grupo_plataformas.add(Plataforma(150, ALTURA - 320, 150, 20))
-
+# Grupo de inimigos
+grupo_inimigos = pygame.sprite.Group()
+grupo_inimigos.add(Inimigo(300, 520))
 #criar porta
 class Porta(pygame.sprite.Sprite):
     def __init__(self, x, y):
@@ -178,6 +216,7 @@ def encostar_na_porta():
         print(f"Você precisa coletar {cartoes_necessarios - cartoes_coletados} cartões para abrir a porta.")
 tempo_inicio = pygame.time.get_ticks() # Tempo inicial do jogo
 # Loop Principal
+perdeu = False
 venceu = False
 rodando = True
 while rodando:
@@ -190,7 +229,10 @@ while rodando:
         if evento.type == pygame.KEYDOWN:
             if evento.key == pygame.K_SPACE or evento.key == pygame.K_UP:
                 jogador.pular()
-
+        if evento.type == pygame.KEYDOWN:
+            if perdeu and evento.key == pygame.K_r:
+                # Reiniciar o jogo
+                reiniciar_jogo()
     # Movimento contínuo pelas setas
     teclas = pygame.key.get_pressed()
     if teclas[pygame.K_LEFT] or teclas[pygame.K_a]:
@@ -204,7 +246,7 @@ while rodando:
 
     # Atualizações
     jogador.atualizar(chao, grupo_plataformas)
-    
+    grupo_inimigos.update()
     # Coletar itens
     coletados = pygame.sprite.spritecollide(jogador, grupo_coletaveis, True)
     for item in coletados:
@@ -214,7 +256,11 @@ while rodando:
         if porta_aberta:
             venceu = True
             print("Parabéns! Você venceu o jogo!")
-            rodando = False
+    colisoes = pygame.sprite.spritecollide(jogador, grupo_inimigos, False)
+    if colisoes and not perdeu:
+        print("Você Perdeu!")
+        perdeu = True
+            
             
 
     # Renderização
@@ -223,6 +269,7 @@ while rodando:
     grupo_plataformas.draw(tela)
     grupo_coletaveis.draw(tela)
     grupo_jogador.draw(tela)
+    grupo_inimigos.draw(tela)
     grupo_porta.draw(tela)
     texto = fonte.render(
         f"Cartões coletados: {cartoes_coletados}/{cartoes_necessarios}", 
@@ -235,5 +282,8 @@ while rodando:
     tempo = (pygame.time.get_ticks() - tempo_inicio) // 1000
     texto_tempo = fonte.render(f"Tempo: {tempo} segundos", True, PRETO)
     tela.blit(texto_tempo, (10, 50))
+    if perdeu:
+        texto_derrota = fonte.render("Você Perdeu!", True, VERMELHO)
+        tela.blit(texto_derrota, (300, 300))
     pygame.display.flip()
 pygame.quit()
