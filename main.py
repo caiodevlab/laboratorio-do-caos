@@ -3,287 +3,183 @@ import random
 
 pygame.init()
 
-# Configurações da janela
-LARGURA = 800
-ALTURA = 600
-TITULO = "Jogo de Física Aprimorado"
-
+LARGURA, ALTURA = 800, 600
 tela = pygame.display.set_mode((LARGURA, ALTURA))
-pygame.display.set_caption(TITULO)
+pygame.display.set_caption("Laboratório do Caos")
 clock = pygame.time.Clock()
 
-# Cores
-PRETO = (0, 0, 0)
-BRANCO = (255, 255, 255)
-VERMELHO = (255, 0, 0)
-VERDE = (0, 255, 0)
-AZUL = (0, 0, 255)
-AMARELO = (255, 255, 0)
-CINZA = (128, 128, 128)
-#fonte para texto
-fonte = pygame.font.SysFont(None, 36)
-# Classe do Jogador
-class Jogador(pygame.sprite.Sprite):
+BRANCO=(255,255,255)
+PRETO=(0,0,0)
+VERMELHO=(255,0,0)
+VERDE=(0,255,0)
+AZUL=(0,0,255)
+AMARELO=(255,255,0)
+CINZA=(120,120,120)
+
+fonte = pygame.font.SysFont(None,36)
+fonte_grande = pygame.font.SysFont(None,60)
+
+class Plataforma:
+    def __init__(self,x,y,w,h):
+        self.rect = pygame.Rect(x,y,w,h)
+
+class Jogador:
     def __init__(self):
-        super().__init__()
-        self.image = pygame.Surface((50, 50))
-        self.image.fill(VERMELHO)
-        self.rect = self.image.get_rect()
-        self.rect.x = 100
-        self.rect.y = 100
-        
-        # Física e Movimentação
-        self.velocidade_x = 0
-        self.velocidade_y = 0
-        self.aceleracao_x = 0.5
-        self.desaceleracao = 0.1
-        self.velocidade_max = 6
-        
-        self.gravidade = 0.6
-        self.forca_pulo = -12
-        self.limite_queda = 15
-        
-        # Estados
-        self.esta_no_chao = False
-        self.pulos_restantes = 2
+        self.rect = pygame.Rect(100,100,50,50)
+        self.velx = 0
+        self.vely = 0
+        self.no_chao = False
+        self.pulos = 2
 
-    def atualizar(self, chao, plataformas):
-        # Gravidade
-        self.velocidade_y += self.gravidade
-        if self.velocidade_y > self.limite_queda:
-            self.velocidade_y = self.limite_queda
+    def atualizar(self, plataformas):
+        self.vely += 0.6
+        if self.vely > 15:
+            self.vely = 15
 
-        # Movimento Horizontal com desaceleração
-        self.velocidade_x *= (1 - self.desaceleracao)
-        self.rect.x += self.velocidade_x
+        self.rect.x += int(self.velx)
 
-        # Colisão Horizontal
-        self.verificar_colisoes_x(plataformas)
-        self.verificar_colisoes_x([chao])
+        self.rect.y += int(self.vely)
 
-        # Movimento Vertical
-        self.rect.y += self.velocidade_y
+        self.no_chao = False
+        for p in plataformas:
+            if self.rect.colliderect(p.rect):
+                if self.vely > 0:
+                    self.rect.bottom = p.rect.top
+                    self.vely = 0
+                    self.no_chao = True
+                    self.pulos = 2
 
-        # Colisão Vertical
-        self.esta_no_chao = False
-        self.verificar_colisoes_y(plataformas)
-        self.verificar_colisoes_y([chao])
-
-        # Limites da tela (paredes)
         if self.rect.left < 0:
             self.rect.left = 0
         if self.rect.right > LARGURA:
             self.rect.right = LARGURA
 
     def pular(self):
-        if self.esta_no_chao:
-            self.velocidade_y = self.forca_pulo
-            self.esta_no_chao = False
-        elif self.pulos_restantes > 0: # Pulo duplo
-            self.velocidade_y = self.forca_pulo * 0.8 # Pulo duplo um pouco menor
-            self.pulos_restantes -= 1
+        if self.no_chao:
+            self.vely = -12
+        elif self.pulos > 0:
+            self.vely = -10
+            self.pulos -= 1
 
-    def verificar_colisoes_x(self, obstaculos):
-        for obstaculo in obstaculos:
-            if self.rect.colliderect(obstaculo.rect):
-                if self.velocidade_x > 0:
-                    self.rect.right = obstaculo.rect.left
-                elif self.velocidade_x < 0:
-                    self.rect.left = obstaculo.rect.right
-                self.velocidade_x = 0
+def criar_fase():
+    jogador = Jogador()
 
-    def verificar_colisoes_y(self, obstaculos):
-        for obstaculo in obstaculos:
-            if self.rect.colliderect(obstaculo.rect):
-                if self.velocidade_y > 0: # Caindo
-                    self.rect.bottom = obstaculo.rect.top
-                    self.velocidade_y = 0
-                    self.esta_no_chao = True
-                    self.pulos_restantes = 2 # Reseta pulo duplo
-                elif self.velocidade_y < 0: # Pulando e batendo a cabeça
-                    self.rect.top = obstaculo.rect.bottom
-                    self.velocidade_y = 0
-def reiniciar_jogo():
-        global jogador
-        global cartoes_coletados
-        global porta_aberta
-        global tempo_inicio
+    plataformas = [
+        Plataforma(0,560,800,40),
+        Plataforma(250,480,150,20),
+        Plataforma(450,380,150,20),
+        Plataforma(150,280,150,20)
+    ]
 
-        jogador.rect.x = 100
-        jogador.rect.y = 100
+    cartoes = []
+    for _ in range(5):
+        cartoes.append(pygame.Rect(random.randint(50,700), random.randint(80,500), 20, 20))
 
-        jogador.velocidade_x = 0
-        jogador.velocidade_y = 0
+    porta = pygame.Rect(700,480,60,80)
+    inimigo = pygame.Rect(300,520,40,40)
 
-        cartoes_coletados = 0
-        porta_aberta = False
-        tempo_inicio = pygame.time.get_ticks()
-#classe do inimigo
-class Inimigo(pygame.sprite.Sprite):
-    def __init__(self, x, y):
-        super().__init__()
-        self.image = pygame.Surface((40, 40))
-        self.image.fill(AZUL)
-        self.rect = self.image.get_rect()
-        self.rect.x = x
-        self.rect.y = y
-        self.velocidade_x = 2
+    return jogador, plataformas, cartoes, porta, inimigo
 
-    def update(self):
-        self.rect.x += self.velocidade_x
-        if self.rect.left < 0 or self.rect.right > LARGURA:
-            self.velocidade_x *= -1
-        if self.rect.left <= 0:
-            self.rect.left = 0
-            self.velocidade_x *= -1
-        if self.rect.right >= LARGURA:
-            self.rect.right = LARGURA
-            self.velocidade_x *= -1
-# Classe para plataformas
-class Plataforma(pygame.sprite.Sprite):
-    def __init__(self, x, y, largura, altura):
-        super().__init__()
-        self.image = pygame.Surface((largura, altura))
-        self.image.fill(CINZA)
-        self.rect = self.image.get_rect()
-        self.rect.x = x
-        self.rect.y = y
+estado = "menu"
 
-# Classe para coletáveis (moedas/estrelas)
-class CartaoAcesso(pygame.sprite.Sprite):
-    def __init__(self, x, y):
-        super().__init__()
-        self.image = pygame.Surface((20, 20))
-        self.image.fill(AMARELO)
-        self.rect = self.image.get_rect()
-        self.rect.x = x
-        self.rect.y = y
-
-# Configurações do jogo
-jogador = Jogador()
-grupo_jogador = pygame.sprite.GroupSingle(jogador)
-
-chao = Plataforma(0, ALTURA - 40, LARGURA, 40)
-grupo_chao = pygame.sprite.GroupSingle(chao)
-
-# Grupo de plataformas
-grupo_plataformas = pygame.sprite.Group()
-grupo_plataformas.add(Plataforma(250, ALTURA - 120, 150, 20))
-grupo_plataformas.add(Plataforma(450, ALTURA - 220, 150, 20))
-grupo_plataformas.add(Plataforma(150, ALTURA - 320, 150, 20))
-# Grupo de inimigos
-grupo_inimigos = pygame.sprite.Group()
-grupo_inimigos.add(Inimigo(300, 520))
-#criar porta
-class Porta(pygame.sprite.Sprite):
-    def __init__(self, x, y):
-        super().__init__()
-        self.image = pygame.Surface((60, 80))
-        self.image.fill(AZUL)
-        self.rect = self.image.get_rect()
-        self.rect.x = x
-        self.rect.y = y
-#porta no mapa
-porta = Porta(700, ALTURA - 120)
-grupo_porta = pygame.sprite.GroupSingle(porta)
-
-# Grupo de coletáveis
-grupo_coletaveis = pygame.sprite.Group()
-for _ in range(5):
-    item = CartaoAcesso(random.randint(100, LARGURA - 100), random.randint(100, ALTURA - 150))
-    grupo_coletaveis.add(item)
-
-#variaveis de controle
+jogador, plataformas, cartoes, porta, inimigo = criar_fase()
 cartoes_coletados = 0
-cartoes_necessarios = 5
 porta_aberta = False
+inicio = pygame.time.get_ticks()
+vel_inimigo = 3
 
-#função para coletar cartões
-def coletar_cartao():
-    global cartoes_coletados
-    cartoes_coletados += 1
-    print(f"Cartões coletados: {cartoes_coletados}")
-
-#função para verificar se a porta pode ser aberta
-def encostar_na_porta():
-    global porta_aberta
-    if cartoes_coletados >= cartoes_necessarios:
-        porta_aberta = True
-        print("Porta aberta! Você pode passar.")
-        porta.image.fill(VERDE) # Muda a cor da porta para indicar que está aberta
-    
-    else:
-        print(f"Você precisa coletar {cartoes_necessarios - cartoes_coletados} cartões para abrir a porta.")
-tempo_inicio = pygame.time.get_ticks() # Tempo inicial do jogo
-# Loop Principal
-perdeu = False
-venceu = False
 rodando = True
-while rodando:
-    relogio = clock.tick(60)
 
-    # Eventos
+while rodando:
+    clock.tick(60)
+
     for evento in pygame.event.get():
         if evento.type == pygame.QUIT:
             rodando = False
-        if evento.type == pygame.KEYDOWN:
-            if evento.key == pygame.K_SPACE or evento.key == pygame.K_UP:
-                jogador.pular()
-        if evento.type == pygame.KEYDOWN:
-            if perdeu and evento.key == pygame.K_r:
-                # Reiniciar o jogo
-                reiniciar_jogo()
-    # Movimento contínuo pelas setas
-    teclas = pygame.key.get_pressed()
-    if teclas[pygame.K_LEFT] or teclas[pygame.K_a]:
-        jogador.velocidade_x -= jogador.aceleracao_x
-        if jogador.velocidade_x < -jogador.velocidade_max:
-            jogador.velocidade_x = -jogador.velocidade_max
-    if teclas[pygame.K_RIGHT] or teclas[pygame.K_d]:
-        jogador.velocidade_x += jogador.aceleracao_x
-        if jogador.velocidade_x > jogador.velocidade_max:
-            jogador.velocidade_x = jogador.velocidade_max
 
-    # Atualizações
-    jogador.atualizar(chao, grupo_plataformas)
-    grupo_inimigos.update()
-    # Coletar itens
-    coletados = pygame.sprite.spritecollide(jogador, grupo_coletaveis, True)
-    for item in coletados:
-        coletar_cartao()
-    if pygame.sprite.collide_rect(jogador, porta):
-        encostar_na_porta()
-        if porta_aberta:
-            venceu = True
-            print("Parabéns! Você venceu o jogo!")
-    colisoes = pygame.sprite.spritecollide(jogador, grupo_inimigos, False)
-    if colisoes and not perdeu:
-        print("Você Perdeu!")
-        perdeu = True
-            
-            
+        if estado == "menu":
+            if evento.type == pygame.KEYDOWN:
+                if evento.key == pygame.K_RETURN:
+                    jogador, plataformas, cartoes, porta, inimigo = criar_fase()
+                    cartoes_coletados = 0
+                    porta_aberta = False
+                    inicio = pygame.time.get_ticks()
+                    estado = "jogo"
 
-    # Renderização
+        elif estado == "jogo":
+            if evento.type == pygame.KEYDOWN:
+                if evento.key == pygame.K_SPACE:
+                    jogador.pular()
+
+        elif estado in ["vitoria","derrota"]:
+            if evento.type == pygame.KEYDOWN and evento.key == pygame.K_r:
+                estado = "menu"
+
+    if estado == "jogo":
+        teclas = pygame.key.get_pressed()
+
+        if teclas[pygame.K_a] or teclas[pygame.K_LEFT]:
+            jogador.velx = -6
+        elif teclas[pygame.K_d] or teclas[pygame.K_RIGHT]:
+            jogador.velx = 6
+        else:
+            jogador.velx = 0
+
+        jogador.atualizar(plataformas)
+
+        inimigo.x += vel_inimigo
+        if inimigo.left <= 0 or inimigo.right >= LARGURA:
+            vel_inimigo *= -1
+
+        for c in cartoes[:]:
+            if jogador.rect.colliderect(c):
+                cartoes.remove(c)
+                cartoes_coletados += 1
+
+        if cartoes_coletados >= 5:
+            porta_aberta = True
+
+        if jogador.rect.colliderect(inimigo):
+            estado = "derrota"
+
+        if porta_aberta and jogador.rect.colliderect(porta):
+            estado = "vitoria"
+
     tela.fill(BRANCO)
-    grupo_chao.draw(tela)
-    grupo_plataformas.draw(tela)
-    grupo_coletaveis.draw(tela)
-    grupo_jogador.draw(tela)
-    grupo_inimigos.draw(tela)
-    grupo_porta.draw(tela)
-    texto = fonte.render(
-        f"Cartões coletados: {cartoes_coletados}/{cartoes_necessarios}", 
-        True, PRETO
-    )
-    tela.blit(texto, (10, 10))
-    if venceu:
-        texto_vitoria = fonte.render("Parabéns! Você venceu!", True, AZUL)
-        tela.blit(texto_vitoria, (280, 250))
-    tempo = (pygame.time.get_ticks() - tempo_inicio) // 1000
-    texto_tempo = fonte.render(f"Tempo: {tempo} segundos", True, PRETO)
-    tela.blit(texto_tempo, (10, 50))
-    if perdeu:
-        texto_derrota = fonte.render("Você Perdeu!", True, VERMELHO)
-        tela.blit(texto_derrota, (300, 300))
+
+    if estado == "menu":
+        titulo = fonte_grande.render("LABORATORIO DO CAOS", True, PRETO)
+        iniciar = fonte.render("ENTER - Iniciar", True, PRETO)
+        tela.blit(titulo,(160,200))
+        tela.blit(iniciar,(300,320))
+
+    elif estado == "jogo":
+        for p in plataformas:
+            pygame.draw.rect(tela,CINZA,p.rect)
+
+        pygame.draw.rect(tela,VERMELHO,jogador.rect)
+        pygame.draw.rect(tela,AZUL,inimigo)
+
+        for c in cartoes:
+            pygame.draw.rect(tela,AMARELO,c)
+
+        pygame.draw.rect(tela, VERDE if porta_aberta else AZUL, porta)
+
+        tempo = (pygame.time.get_ticks()-inicio)//1000
+
+        tela.blit(fonte.render(f"Cartoes: {cartoes_coletados}/5",True,PRETO),(10,10))
+        tela.blit(fonte.render(f"Tempo: {tempo}s",True,PRETO),(10,45))
+
+    elif estado == "vitoria":
+        tempo = (pygame.time.get_ticks()-inicio)//1000
+        tela.blit(fonte_grande.render("VOCE ESCAPOU!",True,VERDE),(180,220))
+        tela.blit(fonte.render(f"Tempo final: {tempo}s",True,PRETO),(300,300))
+        tela.blit(fonte.render("R - Voltar ao menu",True,PRETO),(260,350))
+
+    elif estado == "derrota":
+        tela.blit(fonte_grande.render("VOCE PERDEU!",True,VERMELHO),(180,240))
+        tela.blit(fonte.render("R - Tentar novamente",True,PRETO),(250,320))
+
     pygame.display.flip()
+
 pygame.quit()
