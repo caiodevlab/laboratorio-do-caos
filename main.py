@@ -6,6 +6,9 @@ pygame.init()
 LARGURA, ALTURA = 800, 600
 tela = pygame.display.set_mode((LARGURA, ALTURA))
 pygame.display.set_caption("Laboratório do Caos")
+
+fundo = pygame.image.load('assets/imagens/fundo.png')
+fundo = pygame.transform.scale(fundo, (LARGURA, ALTURA))
 clock = pygame.time.Clock()
 
 BRANCO=(255,255,255)
@@ -87,7 +90,8 @@ cartoes_coletados = 0
 porta_aberta = False
 inicio = pygame.time.get_ticks()
 vel_inimigo = 3
-
+tempo_final = 0
+#loop principal
 rodando = True
 
 while rodando:
@@ -143,9 +147,10 @@ while rodando:
             estado = "derrota"
 
         if porta_aberta and jogador.rect.colliderect(porta):
+            tempo_final = (pygame.time.get_ticks()-inicio)//1000
             estado = "vitoria"
 
-    tela.fill(BRANCO)
+    tela.blit(fundo, (0, 0))
 
     if estado == "menu":
         titulo = fonte_grande.render("LABORATORIO DO CAOS", True, PRETO)
@@ -173,7 +178,7 @@ while rodando:
     elif estado == "vitoria":
         tempo = (pygame.time.get_ticks()-inicio)//1000
         tela.blit(fonte_grande.render("VOCE ESCAPOU!",True,VERDE),(180,220))
-        tela.blit(fonte.render(f"Tempo final: {tempo}s",True,PRETO),(300,300))
+        tela.blit(fonte.render(f"Tempo final: {tempo_final}s",True,PRETO),(300,300))
         tela.blit(fonte.render("R - Voltar ao menu",True,PRETO),(260,350))
 
     elif estado == "derrota":
