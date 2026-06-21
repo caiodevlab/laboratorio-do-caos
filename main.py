@@ -1,3 +1,5 @@
+from logging import DEBUG
+
 import pygame
 import random
 
@@ -36,8 +38,8 @@ class Jogador:
 
     def atualizar(self, plataformas):
         self.vely += 0.6
-        if self.vely > 15:
-            self.vely = 15
+        if self.vely > 10:
+            self.vely = 10
 
         self.rect.x += int(self.velx)
 
@@ -68,10 +70,10 @@ def criar_fase():
     jogador = Jogador()
 
     plataformas = [
-        Plataforma(0,560,800,40),
-        Plataforma(250,480,150,20),
-        Plataforma(450,380,150,20),
-        Plataforma(150,280,150,20)
+        Plataforma(0,491,800,40),
+        Plataforma(236,316,191,15),
+        Plataforma(466,255,228,15),
+        Plataforma(0,235,324,15)    
     ]
 
     cartoes = []
@@ -84,13 +86,19 @@ def criar_fase():
     return jogador, plataformas, cartoes, porta, inimigo
 
 estado = "menu"
-
+escadas = [
+    pygame.Rect(300,316,20,175),
+    pygame.Rect(500,255,20,235)
+]
+em_escada = False
 jogador, plataformas, cartoes, porta, inimigo = criar_fase()
 cartoes_coletados = 0
 porta_aberta = False
 inicio = pygame.time.get_ticks()
 vel_inimigo = 3
 tempo_final = 0
+#bug de plataforma
+DEBUG = False
 #loop principal
 rodando = True
 
@@ -160,11 +168,10 @@ while rodando:
 
     elif estado == "jogo":
         for p in plataformas:
-            pygame.draw.rect(tela,CINZA,p.rect)
-
-        pygame.draw.rect(tela,VERMELHO,jogador.rect)
-        pygame.draw.rect(tela,AZUL,inimigo)
-
+            #pygame.draw.rect(tela,CINZA,p.rect)
+            pygame.draw.rect(tela,VERMELHO,jogador.rect)
+            pygame.draw.rect(tela,AZUL,inimigo)
+  
         for c in cartoes:
             pygame.draw.rect(tela,AMARELO,c)
 
@@ -184,6 +191,13 @@ while rodando:
     elif estado == "derrota":
         tela.blit(fonte_grande.render("VOCE PERDEU!",True,VERMELHO),(180,240))
         tela.blit(fonte.render("R - Tentar novamente",True,PRETO),(250,320))
+    #escadas
+    for escada in escadas:
+        if jogador.rect.colliderect(escada):
+            em_escada = True
+    if DEBUG:
+        for p in plataformas:
+            pygame.draw.rect(tela,(255,0,255),p.rect,2)
 
     pygame.display.flip()
 
