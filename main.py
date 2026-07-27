@@ -80,8 +80,8 @@ def criar_fase():
     for _ in range(5):
         cartoes.append(pygame.Rect(random.randint(50,700), random.randint(80,500), 20, 20))
 
-    porta = pygame.Rect(700,480,60,80)
-    inimigo = pygame.Rect(300,520,40,40)
+    porta = pygame.Rect(634,399,75,80)
+    inimigo = pygame.Rect(49,438,40,40)
 
     return jogador, plataformas, cartoes, porta, inimigo
 
@@ -175,7 +175,7 @@ while rodando:
         for c in cartoes:
             pygame.draw.rect(tela,AMARELO,c)
 
-        pygame.draw.rect(tela, VERDE if porta_aberta else AZUL, porta)
+        #pygame.draw.rect(tela, VERDE if porta_aberta else AZUL, porta)
 
         tempo = (pygame.time.get_ticks()-inicio)//1000
 
@@ -198,7 +198,9 @@ while rodando:
     if DEBUG:
         for p in plataformas:
             pygame.draw.rect(tela,(255,0,255),p.rect,2)
-
+#debug de cordenadas
+    if evento.type == pygame.MOUSEBUTTONDOWN:
+        print(pygame.mouse.get_pos())
     pygame.display.flip()
 
 pygame.quit()
