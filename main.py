@@ -85,7 +85,7 @@ def criar_fase():
 
     return jogador, plataformas, cartoes, porta, inimigo
 
-estado = "menu"
+estado = "menu" # Estados: "menu", "historia", "jogo", "vitoria", "derrota"
 escadas = [
     pygame.Rect(300,316,20,175),
     pygame.Rect(500,255,20,235)
@@ -116,12 +116,17 @@ while rodando:
                     cartoes_coletados = 0
                     porta_aberta = False
                     inicio = pygame.time.get_ticks()
-                    estado = "jogo"
+                    estado = "historia" # Transição para o estado "historia"
 
         elif estado == "jogo":
             if evento.type == pygame.KEYDOWN:
                 if evento.key == pygame.K_SPACE:
                     jogador.pular()
+        elif estado == "historia":
+            if evento.type == pygame.KEYDOWN:
+                if evento.key == pygame.K_RETURN:
+                    estado = "jogo" # Transição para o estado "jogo" após a história
+
 
         elif estado in ["vitoria","derrota"]:
             if evento.type == pygame.KEYDOWN and evento.key == pygame.K_r:
@@ -158,14 +163,30 @@ while rodando:
             tempo_final = (pygame.time.get_ticks()-inicio)//1000
             estado = "vitoria"
 
-    tela.blit(fundo, (0, 0))
+    if estado == "historia":
+        tela.fill(BRANCO)
+    else:
+        tela.blit(fundo,(0,0))
 
     if estado == "menu":
         titulo = fonte_grande.render("LABORATORIO DO CAOS", True, PRETO)
         iniciar = fonte.render("ENTER - Iniciar", True, PRETO)
-        tela.blit(titulo,(160,200))
-        tela.blit(iniciar,(300,320))
-
+        tela.fill(BRANCO)
+        tela.blit(titulo, (160, 200))
+        tela.blit(iniciar, (300, 300))
+    elif estado == "historia":
+        titulo = fonte_grande.render("HISTÓRIA", True, PRETO)
+        tela.blit(titulo, (260, 70))
+        historia_texto = [
+            "Um experimento de Física deu errado!",
+            "O cientista está preso no laboratório.",
+            "Colete todos os cartões de acesso para escapar.",
+            "Aprenda conceitos de Física no percurso."
+        ]
+        for i, linha in enumerate(historia_texto):
+            render_linha = fonte.render(linha, True, PRETO)
+            tela.blit(render_linha, (50, 150 + i * 40))
+        tela.blit(fonte.render("Pressione ENTER para iniciar a missão.", True, PRETO), (50, ALTURA - 100))
     elif estado == "jogo":
         for p in plataformas:
             #pygame.draw.rect(tela,CINZA,p.rect)
@@ -179,18 +200,18 @@ while rodando:
 
         tempo = (pygame.time.get_ticks()-inicio)//1000
 
-        tela.blit(fonte.render(f"Cartoes: {cartoes_coletados}/5",True,PRETO),(10,10))
-        tela.blit(fonte.render(f"Tempo: {tempo}s",True,PRETO),(10,45))
+        tela.blit(fonte.render(f"Cartoes: {cartoes_coletados}/5",True,VERDE),(10,10))
+        tela.blit(fonte.render(f"Tempo: {tempo}s",True,VERDE),(10,45))
 
     elif estado == "vitoria":
         tempo = (pygame.time.get_ticks()-inicio)//1000
         tela.blit(fonte_grande.render("VOCE ESCAPOU!",True,VERDE),(180,220))
-        tela.blit(fonte.render(f"Tempo final: {tempo_final}s",True,PRETO),(300,300))
-        tela.blit(fonte.render("R - Voltar ao menu",True,PRETO),(260,350))
+        tela.blit(fonte.render(f"Tempo final: {tempo_final}s",True,BRANCO),(300,300))
+        tela.blit(fonte.render("R - Voltar ao menu",True,BRANCO),(260,350))
 
     elif estado == "derrota":
         tela.blit(fonte_grande.render("VOCE PERDEU!",True,VERMELHO),(180,240))
-        tela.blit(fonte.render("R - Tentar novamente",True,PRETO),(250,320))
+        tela.blit(fonte.render("R - Tentar novamente",True,BRANCO),(250,320))
     #escadas
     for escada in escadas:
         if jogador.rect.colliderect(escada):
