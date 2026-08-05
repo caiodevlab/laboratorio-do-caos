@@ -1,58 +1,69 @@
-from logging import DEBUG
-
-import pygame
+from pathlib import Path
 import random
+import pygame
 
 pygame.init()
 
-LARGURA, ALTURA = 800, 600
+LARGURA = 800
+ALTURA = 600
+
+base = Path(__file__).resolve().parent
 tela = pygame.display.set_mode((LARGURA, ALTURA))
 pygame.display.set_caption("Laboratório do Caos")
 
-fundo = pygame.image.load('assets/imagens/fundo.png')
+fundo = pygame.image.load(base / "assets" / "imagens" / "fundo.png")
+menu = pygame.image.load(base / "assets" / "imagens" / "menu.png")
 fundo = pygame.transform.scale(fundo, (LARGURA, ALTURA))
+menu = pygame.transform.scale(menu, (LARGURA, ALTURA))
 clock = pygame.time.Clock()
 
-BRANCO=(255,255,255)
-PRETO=(0,0,0)
-VERMELHO=(255,0,0)
-VERDE=(0,255,0)
-AZUL=(0,0,255)
-AMARELO=(255,255,0)
-CINZA=(120,120,120)
+BRANCO = (255, 255, 255)
+PRETO = (0, 0, 0)
+VERMELHO = (255, 0, 0)
+VERDE = (0, 255, 0)
+AZUL = (0, 0, 255)
+AMARELO = (255, 255, 0)
 
-fonte = pygame.font.SysFont(None,36)
-fonte_grande = pygame.font.SysFont(None,60)
+fonte = pygame.font.SysFont(None, 36)
+fonte_grande = pygame.font.SysFont(None, 60)
+
 
 class Plataforma:
-    def __init__(self,x,y,w,h):
-        self.rect = pygame.Rect(x,y,w,h)
+    def __init__(self, x, y, largura, altura):
+        self.rect = pygame.Rect(x, y, largura, altura)
+
+
+class Escada:
+    def __init__(self, x, y, largura, altura):
+        self.rect = pygame.Rect(x, y, largura, altura)
+
 
 class Jogador:
     def __init__(self):
-        self.rect = pygame.Rect(100,100,50,50)
+        self.rect = pygame.Rect(100, 100, 50, 50)
         self.velx = 0
         self.vely = 0
         self.no_chao = False
         self.pulos = 2
+        self.na_escada = False
 
     def atualizar(self, plataformas):
-        self.vely += 0.6
-        if self.vely > 10:
-            self.vely = 10
+        if not self.na_escada:
+            self.vely += 0.6
+        self.vely = min(self.vely, 10)
 
         self.rect.x += int(self.velx)
-
         self.rect.y += int(self.vely)
 
         self.no_chao = False
-        for p in plataformas:
-            if self.rect.colliderect(p.rect):
+        for plataforma in plataformas:
+            if self.rect.colliderect(plataforma.rect):
                 if self.vely > 0:
-                    self.rect.bottom = p.rect.top
+                    self.rect.bottom = plataforma.rect.top
                     self.vely = 0
                     self.no_chao = True
                     self.pulos = 2
+                    break
 
         if self.rect.left < 0:
             self.rect.left = 0
@@ -60,46 +71,46 @@ class Jogador:
             self.rect.right = LARGURA
 
     def pular(self):
+        if self.na_escada:
+            return
         if self.no_chao:
             self.vely = -12
         elif self.pulos > 0:
             self.vely = -10
             self.pulos -= 1
 
+
 def criar_fase():
     jogador = Jogador()
 
     plataformas = [
-        Plataforma(0,491,800,40),
-        Plataforma(236,316,191,15),
-        Plataforma(466,255,228,15),
-        Plataforma(0,235,324,15)    
+        Plataforma(0, 491, 800, 40),
+        Plataforma(236, 316, 191, 15),
+        Plataforma(466, 255, 228, 15),
+        Plataforma(0, 235, 324, 15),
+    ]
+    escadas = [
+        Escada(130, 256, 20, 200),
+        Escada(720, 257, 20, 50),
     ]
 
     cartoes = []
     for _ in range(5):
-        cartoes.append(pygame.Rect(random.randint(50,700), random.randint(80,500), 20, 20))
+        cartoes.append(pygame.Rect(random.randint(50, 700), random.randint(80, 500), 20, 20))
 
-    porta = pygame.Rect(634,399,75,80)
-    inimigo = pygame.Rect(49,438,40,40)
+    porta = pygame.Rect(634, 399, 75, 80)
+    inimigo = pygame.Rect(49, 438, 40, 40)
 
-    return jogador, plataformas, cartoes, porta, inimigo
+    return jogador, plataformas, escadas, cartoes, porta, inimigo
 
-estado = "menu" # Estados: "menu", "historia", "jogo", "vitoria", "derrota"
-escadas = [
-    pygame.Rect(300,316,20,175),
-    pygame.Rect(500,255,20,235)
-]
-em_escada = False
-jogador, plataformas, cartoes, porta, inimigo = criar_fase()
+
+estado = "menu"
+jogador, plataformas, escadas, cartoes, porta, inimigo = criar_fase()
 cartoes_coletados = 0
 porta_aberta = False
 inicio = pygame.time.get_ticks()
-vel_inimigo = 3
 tempo_final = 0
-#bug de plataforma
-DEBUG = False
-#loop principal
+vel_inimigo = 3
 rodando = True
 
 while rodando:
@@ -108,39 +119,47 @@ while rodando:
     for evento in pygame.event.get():
         if evento.type == pygame.QUIT:
             rodando = False
-
-        if estado == "menu":
-            if evento.type == pygame.KEYDOWN:
-                if evento.key == pygame.K_RETURN:
-                    jogador, plataformas, cartoes, porta, inimigo = criar_fase()
-                    cartoes_coletados = 0
-                    porta_aberta = False
-                    inicio = pygame.time.get_ticks()
-                    estado = "historia" # Transição para o estado "historia"
-
-        elif estado == "jogo":
-            if evento.type == pygame.KEYDOWN:
-                if evento.key == pygame.K_SPACE:
-                    jogador.pular()
+        elif evento.type == pygame.MOUSEBUTTONDOWN:
+            print(pygame.mouse.get_pos())
+        elif estado == "menu":
+            if evento.type == pygame.KEYDOWN and evento.key == pygame.K_RETURN:
+                jogador, plataformas, escadas, cartoes, porta, inimigo = criar_fase()
+                cartoes_coletados = 0
+                porta_aberta = False
+                inicio = pygame.time.get_ticks()
+                estado = "historia"
         elif estado == "historia":
-            if evento.type == pygame.KEYDOWN:
-                if evento.key == pygame.K_RETURN:
-                    estado = "jogo" # Transição para o estado "jogo" após a história
-
-
-        elif estado in ["vitoria","derrota"]:
+            if evento.type == pygame.KEYDOWN and evento.key == pygame.K_RETURN:
+                estado = "jogo"
+        elif estado == "jogo":
+            if evento.type == pygame.KEYDOWN and evento.key == pygame.K_SPACE:
+                jogador.pular()
+        elif estado in {"vitoria", "derrota"}:
             if evento.type == pygame.KEYDOWN and evento.key == pygame.K_r:
                 estado = "menu"
 
     if estado == "jogo":
         teclas = pygame.key.get_pressed()
 
+        jogador.velx = 0
         if teclas[pygame.K_a] or teclas[pygame.K_LEFT]:
             jogador.velx = -6
         elif teclas[pygame.K_d] or teclas[pygame.K_RIGHT]:
             jogador.velx = 6
-        else:
-            jogador.velx = 0
+
+        if jogador.na_escada:
+            if teclas[pygame.K_w] or teclas[pygame.K_UP]:
+                jogador.vely = -4
+            elif teclas[pygame.K_s] or teclas[pygame.K_DOWN]:
+                jogador.vely = 4
+            else:
+                jogador.vely = 0
+
+        jogador.na_escada = False
+        for escada in escadas:
+            if jogador.rect.colliderect(escada.rect):
+                jogador.na_escada = True
+                break
 
         jogador.atualizar(plataformas)
 
@@ -148,9 +167,9 @@ while rodando:
         if inimigo.left <= 0 or inimigo.right >= LARGURA:
             vel_inimigo *= -1
 
-        for c in cartoes[:]:
-            if jogador.rect.colliderect(c):
-                cartoes.remove(c)
+        for cartao in list(cartoes):
+            if jogador.rect.colliderect(cartao):
+                cartoes.remove(cartao)
                 cartoes_coletados += 1
 
         if cartoes_coletados >= 5:
@@ -160,68 +179,54 @@ while rodando:
             estado = "derrota"
 
         if porta_aberta and jogador.rect.colliderect(porta):
-            tempo_final = (pygame.time.get_ticks()-inicio)//1000
+            tempo_final = (pygame.time.get_ticks() - inicio) // 1000
             estado = "vitoria"
 
     if estado == "historia":
         tela.fill(BRANCO)
     else:
-        tela.blit(fundo,(0,0))
+        tela.blit(fundo, (0, 0))
 
     if estado == "menu":
-        titulo = fonte_grande.render("LABORATORIO DO CAOS", True, PRETO)
-        iniciar = fonte.render("ENTER - Iniciar", True, PRETO)
-        tela.fill(BRANCO)
-        tela.blit(titulo, (160, 200))
-        tela.blit(iniciar, (300, 300))
+        tela.blit(menu, (0, 0))
     elif estado == "historia":
-        titulo = fonte_grande.render("HISTÓRIA", True, PRETO)
-        tela.blit(titulo, (260, 70))
+        tela.blit(fonte_grande.render("HISTÓRIA", True, PRETO), (260, 70))
         historia_texto = [
             "Um experimento de Física deu errado!",
             "O cientista está preso no laboratório.",
             "Colete todos os cartões de acesso para escapar.",
-            "Aprenda conceitos de Física no percurso."
+            "Aprenda conceitos de Física no percurso.",
         ]
-        for i, linha in enumerate(historia_texto):
-            render_linha = fonte.render(linha, True, PRETO)
-            tela.blit(render_linha, (50, 150 + i * 40))
+        for indice, linha in enumerate(historia_texto):
+            tela.blit(fonte.render(linha, True, PRETO), (50, 150 + indice * 40))
         tela.blit(fonte.render("Pressione ENTER para iniciar a missão.", True, PRETO), (50, ALTURA - 100))
     elif estado == "jogo":
-        for p in plataformas:
-            #pygame.draw.rect(tela,CINZA,p.rect)
-            pygame.draw.rect(tela,VERMELHO,jogador.rect)
-            pygame.draw.rect(tela,AZUL,inimigo)
-  
-        for c in cartoes:
-            pygame.draw.rect(tela,AMARELO,c)
+        # As plataformas fazem parte do mapa, mas não precisam aparecer com cor.
+        for plataforma in plataformas:
+            pass
 
-        #pygame.draw.rect(tela, VERDE if porta_aberta else AZUL, porta)
+        # O personagem é desenhado na tela.
+        pygame.draw.rect(tela, VERMELHO, jogador.rect)
 
-        tempo = (pygame.time.get_ticks()-inicio)//1000
+        # O inimigo também aparece na fase.
+        pygame.draw.rect(tela, AZUL, inimigo)
 
-        tela.blit(fonte.render(f"Cartoes: {cartoes_coletados}/5",True,VERDE),(10,10))
-        tela.blit(fonte.render(f"Tempo: {tempo}s",True,VERDE),(10,45))
+        # Os cartões são mostrados como itens coletáveis.
+        for cartao in cartoes:
+            pygame.draw.rect(tela, AMARELO, cartao)
 
+        tempo = (pygame.time.get_ticks() - inicio) // 1000
+        tela.blit(fonte.render(f"Cartoes: {cartoes_coletados}/5", True, VERDE), (10, 10))
+        tela.blit(fonte.render(f"Tempo: {tempo}s", True, VERDE), (10, 45))
     elif estado == "vitoria":
-        tempo = (pygame.time.get_ticks()-inicio)//1000
-        tela.blit(fonte_grande.render("VOCE ESCAPOU!",True,VERDE),(180,220))
-        tela.blit(fonte.render(f"Tempo final: {tempo_final}s",True,BRANCO),(300,300))
-        tela.blit(fonte.render("R - Voltar ao menu",True,BRANCO),(260,350))
-
+        tempo = (pygame.time.get_ticks() - inicio) // 1000
+        tela.blit(fonte_grande.render("VOCE ESCAPOU!", True, VERDE), (180, 220))
+        tela.blit(fonte.render(f"Tempo final: {tempo_final}s", True, BRANCO), (300, 300))
+        tela.blit(fonte.render("R - Voltar ao menu", True, BRANCO), (260, 350))
     elif estado == "derrota":
-        tela.blit(fonte_grande.render("VOCE PERDEU!",True,VERMELHO),(180,240))
-        tela.blit(fonte.render("R - Tentar novamente",True,BRANCO),(250,320))
-    #escadas
-    for escada in escadas:
-        if jogador.rect.colliderect(escada):
-            em_escada = True
-    if DEBUG:
-        for p in plataformas:
-            pygame.draw.rect(tela,(255,0,255),p.rect,2)
-#debug de cordenadas
-    if evento.type == pygame.MOUSEBUTTONDOWN:
-        print(pygame.mouse.get_pos())
+        tela.blit(fonte_grande.render("VOCE PERDEU!", True, VERMELHO), (180, 240))
+        tela.blit(fonte.render("R - Tentar novamente", True, BRANCO), (250, 320))
+
     pygame.display.flip()
 
 pygame.quit()
